@@ -118,6 +118,14 @@ pub extern "C" fn wire_sweep(
 }
 
 #[no_mangle]
+pub extern "C" fn wire_prepare_withdraw(
+    port_: i64,
+    prepare_withdraw_request: *mut wire_PrepareWithdrawRequest,
+) {
+    wire_prepare_withdraw_impl(port_, prepare_withdraw_request)
+}
+
+#[no_mangle]
 pub extern "C" fn wire_receive_onchain(port_: i64) {
     wire_receive_onchain_impl(port_)
 }
@@ -293,6 +301,11 @@ pub extern "C" fn new_box_autoadd_node_config_0() -> *mut wire_NodeConfig {
 }
 
 #[no_mangle]
+pub extern "C" fn new_box_autoadd_prepare_withdraw_request_0() -> *mut wire_PrepareWithdrawRequest {
+    support::new_leak_box_ptr(wire_PrepareWithdrawRequest::new_with_null_ptr())
+}
+
+#[no_mangle]
 pub extern "C" fn new_box_autoadd_u64_0(value: u64) -> *mut u64 {
     support::new_leak_box_ptr(value)
 }
@@ -361,6 +374,12 @@ impl Wire2Api<NodeConfig> for *mut wire_NodeConfig {
     fn wire2api(self) -> NodeConfig {
         let wrap = unsafe { support::box_from_leak_ptr(self) };
         Wire2Api::<NodeConfig>::wire2api(*wrap).into()
+    }
+}
+impl Wire2Api<PrepareWithdrawRequest> for *mut wire_PrepareWithdrawRequest {
+    fn wire2api(self) -> PrepareWithdrawRequest {
+        let wrap = unsafe { support::box_from_leak_ptr(self) };
+        Wire2Api::<PrepareWithdrawRequest>::wire2api(*wrap).into()
     }
 }
 impl Wire2Api<u64> for *mut u64 {
@@ -452,6 +471,15 @@ impl Wire2Api<NodeConfig> for wire_NodeConfig {
     }
 }
 
+impl Wire2Api<PrepareWithdrawRequest> for wire_PrepareWithdrawRequest {
+    fn wire2api(self) -> PrepareWithdrawRequest {
+        PrepareWithdrawRequest {
+            to_address: self.to_address.wire2api(),
+            fee_rate_sats_per_vbyte: self.fee_rate_sats_per_vbyte.wire2api(),
+        }
+    }
+}
+
 impl Wire2Api<Vec<u8>> for *mut wire_uint_8_list {
     fn wire2api(self) -> Vec<u8> {
         unsafe {
@@ -519,6 +547,13 @@ pub struct wire_LnUrlWithdrawRequestData {
     default_description: *mut wire_uint_8_list,
     min_withdrawable: u64,
     max_withdrawable: u64,
+}
+
+#[repr(C)]
+#[derive(Clone)]
+pub struct wire_PrepareWithdrawRequest {
+    to_address: *mut wire_uint_8_list,
+    fee_rate_sats_per_vbyte: u32,
 }
 
 #[repr(C)]
@@ -687,6 +722,21 @@ pub extern "C" fn inflate_NodeConfig_Greenlight() -> *mut NodeConfigKind {
             config: core::ptr::null_mut(),
         }),
     })
+}
+
+impl NewWithNullPtr for wire_PrepareWithdrawRequest {
+    fn new_with_null_ptr() -> Self {
+        Self {
+            to_address: core::ptr::null_mut(),
+            fee_rate_sats_per_vbyte: Default::default(),
+        }
+    }
+}
+
+impl Default for wire_PrepareWithdrawRequest {
+    fn default() -> Self {
+        Self::new_with_null_ptr()
+    }
 }
 
 // Section: sync execution mode utility

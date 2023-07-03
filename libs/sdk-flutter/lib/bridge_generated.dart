@@ -115,6 +115,12 @@ abstract class BreezSdkCore {
 
   FlutterRustBridgeTaskConstMeta get kSweepConstMeta;
 
+  /// See [BreezServices::prepare_withdraw]
+  Future<PrepareWithdrawResponse> prepareWithdraw(
+      {required PrepareWithdrawRequest prepareWithdrawRequest, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kPrepareWithdrawConstMeta;
+
   /// See [BreezServices::receive_onchain]
   Future<SwapInfo> receiveOnchain({dynamic hint});
 
@@ -866,6 +872,34 @@ enum PaymentTypeFilter {
   All,
 }
 
+/// We need to prepare a withdraw transaction to know what fee will be charged in satoshis this
+/// model holds the request data which consists of the address to withdraw to and the fee rate in
+/// satoshis per vbyte which will be converted to absolute satoshis.
+class PrepareWithdrawRequest {
+  final String toAddress;
+  final int feeRateSatsPerVbyte;
+
+  const PrepareWithdrawRequest({
+    required this.toAddress,
+    required this.feeRateSatsPerVbyte,
+  });
+}
+
+/// We need to prepare a withdraw transaction to know what a fee it will be charged in satoshis
+/// this model holds the response data, which consists of the raw transaction hex, the fee rate in
+/// vbyte and the consolidate fee in satoshis.
+class PrepareWithdrawResponse {
+  final String rawTxHex;
+  final int satPerVbyte;
+  final int feeSat;
+
+  const PrepareWithdrawResponse({
+    required this.rawTxHex,
+    required this.satPerVbyte,
+    required this.feeSat,
+  });
+}
+
 /// Denominator in an exchange rate
 class Rate {
   final String coin;
@@ -1440,6 +1474,23 @@ class BreezSdkCoreImpl implements BreezSdkCore {
   FlutterRustBridgeTaskConstMeta get kSweepConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "sweep",
         argNames: ["toAddress", "feeRateSatsPerVbyte"],
+      );
+
+  Future<PrepareWithdrawResponse> prepareWithdraw(
+      {required PrepareWithdrawRequest prepareWithdrawRequest, dynamic hint}) {
+    var arg0 = _platform.api2wire_box_autoadd_prepare_withdraw_request(prepareWithdrawRequest);
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_prepare_withdraw(port_, arg0),
+      parseSuccessData: _wire2api_prepare_withdraw_response,
+      constMeta: kPrepareWithdrawConstMeta,
+      argValues: [prepareWithdrawRequest],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kPrepareWithdrawConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "prepare_withdraw",
+        argNames: ["prepareWithdrawRequest"],
       );
 
   Future<SwapInfo> receiveOnchain({dynamic hint}) {
@@ -2439,6 +2490,16 @@ class BreezSdkCoreImpl implements BreezSdkCore {
     return PaymentType.values[raw as int];
   }
 
+  PrepareWithdrawResponse _wire2api_prepare_withdraw_response(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return PrepareWithdrawResponse(
+      rawTxHex: _wire2api_String(arr[0]),
+      satPerVbyte: _wire2api_u32(arr[1]),
+      feeSat: _wire2api_u64(arr[2]),
+    );
+  }
+
   Rate _wire2api_rate(dynamic raw) {
     final arr = raw as List<dynamic>;
     if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
@@ -2737,6 +2798,14 @@ class BreezSdkCorePlatform extends FlutterRustBridgeBase<BreezSdkCoreWire> {
   }
 
   @protected
+  ffi.Pointer<wire_PrepareWithdrawRequest> api2wire_box_autoadd_prepare_withdraw_request(
+      PrepareWithdrawRequest raw) {
+    final ptr = inner.new_box_autoadd_prepare_withdraw_request_0();
+    _api_fill_to_wire_prepare_withdraw_request(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
   ffi.Pointer<ffi.Uint64> api2wire_box_autoadd_u64(int raw) {
     return inner.new_box_autoadd_u64_0(api2wire_u64(raw));
   }
@@ -2815,6 +2884,11 @@ class BreezSdkCorePlatform extends FlutterRustBridgeBase<BreezSdkCoreWire> {
     _api_fill_to_wire_node_config(apiObj, wireObj.ref);
   }
 
+  void _api_fill_to_wire_box_autoadd_prepare_withdraw_request(
+      PrepareWithdrawRequest apiObj, ffi.Pointer<wire_PrepareWithdrawRequest> wireObj) {
+    _api_fill_to_wire_prepare_withdraw_request(apiObj, wireObj.ref);
+  }
+
   void _api_fill_to_wire_config(Config apiObj, wire_Config wireObj) {
     wireObj.breezserver = api2wire_String(apiObj.breezserver);
     wireObj.mempoolspace_url = api2wire_String(apiObj.mempoolspaceUrl);
@@ -2880,6 +2954,12 @@ class BreezSdkCorePlatform extends FlutterRustBridgeBase<BreezSdkCoreWire> {
   void _api_fill_to_wire_opt_box_autoadd_greenlight_credentials(
       GreenlightCredentials? apiObj, ffi.Pointer<wire_GreenlightCredentials> wireObj) {
     if (apiObj != null) _api_fill_to_wire_box_autoadd_greenlight_credentials(apiObj, wireObj);
+  }
+
+  void _api_fill_to_wire_prepare_withdraw_request(
+      PrepareWithdrawRequest apiObj, wire_PrepareWithdrawRequest wireObj) {
+    wireObj.to_address = api2wire_String(apiObj.toAddress);
+    wireObj.fee_rate_sats_per_vbyte = api2wire_u32(apiObj.feeRateSatsPerVbyte);
   }
 }
 
@@ -3243,6 +3323,22 @@ class BreezSdkCoreWire implements FlutterRustBridgeWireBase {
           'wire_sweep');
   late final _wire_sweep =
       _wire_sweepPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>, int)>();
+
+  void wire_prepare_withdraw(
+    int port_,
+    ffi.Pointer<wire_PrepareWithdrawRequest> prepare_withdraw_request,
+  ) {
+    return _wire_prepare_withdraw(
+      port_,
+      prepare_withdraw_request,
+    );
+  }
+
+  late final _wire_prepare_withdrawPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_PrepareWithdrawRequest>)>>(
+          'wire_prepare_withdraw');
+  late final _wire_prepare_withdraw =
+      _wire_prepare_withdrawPtr.asFunction<void Function(int, ffi.Pointer<wire_PrepareWithdrawRequest>)>();
 
   void wire_receive_onchain(
     int port_,
@@ -3633,6 +3729,16 @@ class BreezSdkCoreWire implements FlutterRustBridgeWireBase {
   late final _new_box_autoadd_node_config_0 =
       _new_box_autoadd_node_config_0Ptr.asFunction<ffi.Pointer<wire_NodeConfig> Function()>();
 
+  ffi.Pointer<wire_PrepareWithdrawRequest> new_box_autoadd_prepare_withdraw_request_0() {
+    return _new_box_autoadd_prepare_withdraw_request_0();
+  }
+
+  late final _new_box_autoadd_prepare_withdraw_request_0Ptr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_PrepareWithdrawRequest> Function()>>(
+          'new_box_autoadd_prepare_withdraw_request_0');
+  late final _new_box_autoadd_prepare_withdraw_request_0 = _new_box_autoadd_prepare_withdraw_request_0Ptr
+      .asFunction<ffi.Pointer<wire_PrepareWithdrawRequest> Function()>();
+
   ffi.Pointer<ffi.Uint64> new_box_autoadd_u64_0(
     int value,
   ) {
@@ -3738,6 +3844,13 @@ class wire_Config extends ffi.Struct {
   external double maxfee_percent;
 
   external wire_NodeConfig node_config;
+}
+
+class wire_PrepareWithdrawRequest extends ffi.Struct {
+  external ffi.Pointer<wire_uint_8_list> to_address;
+
+  @ffi.Uint32()
+  external int fee_rate_sats_per_vbyte;
 }
 
 class wire_LnUrlPayRequestData extends ffi.Struct {

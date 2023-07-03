@@ -404,7 +404,18 @@ enum BuyBitcoinProvider {
     "Moonpay",
 };
 
-interface BlockingBreezServices {   
+dictionary PrepareWithdrawRequest {
+    string to_address;
+    u32 fee_rate_sats_per_vbyte;
+};
+
+dictionary PrepareWithdrawResponse {
+    string raw_tx_hex;
+    u32 sat_per_vbyte;
+    u64 fee_sat;
+};
+
+interface BlockingBreezServices {
 
    [Throws=SDKError]
    void disconnect();
@@ -498,6 +509,9 @@ interface BlockingBreezServices {
 
    [Throws=SDKError]
    string buy_bitcoin(BuyBitcoinProvider provider);
+
+   [Throws=SDKError]
+   PrepareWithdrawResponse prepare_withdraw(PrepareWithdrawRequest prepare_withdraw_request);
 };
 
 namespace breez_sdk {  

@@ -5,6 +5,7 @@ use anyhow::{anyhow, Error, Result};
 use breez_sdk_core::InputType::{LnUrlAuth, LnUrlPay, LnUrlWithdraw};
 use breez_sdk_core::{
     parse, BreezEvent, BreezServices, EventListener, GreenlightCredentials, PaymentTypeFilter,
+    PrepareWithdrawRequest,
 };
 use breez_sdk_core::{Config, GreenlightNodeConfig, NodeConfig};
 use once_cell::sync::OnceCell;
@@ -92,7 +93,7 @@ pub(crate) async fn handle_command(
         }
         Commands::Sync {} => {
             sdk()?.sync().await?;
-            Ok("Sync finished succesfully".to_string())
+            Ok("Sync finished successfully".to_string())
         }
         Commands::Parse { input } => parse(&input)
             .await
@@ -167,7 +168,22 @@ pub(crate) async fn handle_command(
             sat_per_byte,
         } => {
             sdk()?.sweep(to_address, sat_per_byte).await?;
-            Ok("Onchain funds were swept succesfully".to_string())
+            Ok("Onchain funds were swept successfully".to_string())
+        }
+        Commands::PrepareWithdraw {
+            to_address,
+            fee_rate_sats_per_vbyte,
+        } => {
+            let response = sdk()?
+                .prepare_withdraw(PrepareWithdrawRequest {
+                    to_address,
+                    fee_rate_sats_per_vbyte,
+                })
+                .await?;
+            Ok(format!(
+                "PrepareWithdraw ran successfully with response: {:?}",
+                response
+            ))
         }
         Commands::ListLsps {} => {
             let lsps = sdk()?.list_lsps().await?;
@@ -175,7 +191,7 @@ pub(crate) async fn handle_command(
         }
         Commands::ConnectLSP { lsp_id } => {
             sdk()?.connect_lsp(lsp_id).await?;
-            Ok("LSP connected succesfully".to_string())
+            Ok("LSP connected successfully".to_string())
         }
         Commands::NodeInfo {} => {
             serde_json::to_string_pretty(&sdk()?.node_info()?).map_err(|e| e.into())
@@ -295,7 +311,7 @@ pub(crate) async fn handle_command(
         }
         Commands::Backup {} => {
             sdk().unwrap().backup().await?;
-            Ok("Backup completed succesfully".into())
+            Ok("Backup completed successfully".into())
         }
     }
 }

@@ -100,6 +100,15 @@ pub(crate) enum Commands {
         sat_per_byte: u64,
     },
 
+    /// Calculate the fee (in sats) for a potential transaction
+    PrepareWithdraw {
+        /// The destination address
+        to_address: String,
+
+        /// The fee rate for the transaction in vbyte/sats
+        fee_rate_sats_per_vbyte: u32,
+    },
+
     /// List available LSPs
     ListLsps {},
 

@@ -16,13 +16,14 @@ use gl_client::pb::cln::{
     ListpeerchannelsRequest,
 };
 use gl_client::pb::{
-    Amount, Invoice, InvoiceRequest, InvoiceStatus, OffChainPayment, PayStatus, Peer,
-    WithdrawResponse,
+    Amount, Invoice, InvoiceRequest, InvoiceStatus, ListFundsResponse, OffChainPayment, PayStatus,
+    Peer, WithdrawResponse,
 };
 use gl_client::scheduler::Scheduler;
 use gl_client::signer::Signer;
 use gl_client::tls::TlsConfig;
 use gl_client::{node, pb, utils};
+use lightning::util::ser::Writeable;
 use lightning_invoice::{RawInvoice, SignedRawInvoice};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
@@ -35,7 +36,7 @@ use crate::models::{
     PaymentType, SyncResponse, UnspentTransactionOutput,
 };
 use crate::persist::db::SqliteStorage;
-use crate::{Channel, ChannelState, NodeConfig};
+use crate::{Channel, ChannelState, NodeConfig, PrepareWithdrawRequest, PrepareWithdrawResponse};
 
 const MAX_PAYMENT_AMOUNT_MSAT: u64 = 4294967000;
 const MAX_INBOUND_LIQUIDITY_MSAT: u64 = 4000000000;
@@ -54,7 +55,7 @@ impl Greenlight {
     /// If the node is not created, it will register it using the provided partner credentials
     /// or invite code
     /// If the node is already registered and an existing credentials were found, it will try to
-    /// connect to the node using these credentials.    
+    /// connect to the node using these credentials.
     pub async fn connect(
         config: Config,
         seed: Vec<u8>,
@@ -262,7 +263,7 @@ impl NodeAPI for Greenlight {
         Ok(client.create_invoice(request).await?.into_inner())
     }
 
-    // implemenet pull changes from greenlight
+    // implement pull changes from greenlight
     async fn pull_changed(&self, since_timestamp: i64) -> Result<SyncResponse> {
         info!("pull changed since {}", since_timestamp);
         let mut client = self.get_client().await?;
@@ -281,11 +282,7 @@ impl NodeAPI for Greenlight {
             .into_inner();
 
         // list both off chain funds and on chain fudns
-        let funds = client
-            .list_funds(pb::ListFundsRequest::default())
-            .await?
-            .into_inner();
-        let onchain_funds = funds.outputs;
+        let funds = list_funds(self).await?;
 
         // filter only connected peers
         let connected_peers: Vec<String> = peers
@@ -345,34 +342,8 @@ impl NodeAPI for Greenlight {
             .sum::<u64>();
 
         // calculate onchain balance
-        let onchain_balance = onchain_funds.iter().fold(0, |a, b| {
-            if b.reserved {
-                return a;
-            }
-            a + amount_to_msat(&b.amount.clone().unwrap_or_default())
-        });
-
-        // Collect utxos from onchain funds
-        let utxos = onchain_funds
-            .iter()
-            .filter_map(|list_funds_output| {
-                list_funds_output
-                    .output
-                    .as_ref()
-                    .map(|output| UnspentTransactionOutput {
-                        txid: output.txid.clone(),
-                        outnum: output.outnum,
-                        amount_millisatoshi: list_funds_output
-                            .amount
-                            .as_ref()
-                            .map(amount_to_msat)
-                            .unwrap_or_default(),
-                        address: list_funds_output.address.clone(),
-                        reserved: list_funds_output.reserved,
-                        reserved_to_block: list_funds_output.reserved_to_block,
-                    })
-            })
-            .collect();
+        let onchain_balance = self.on_chain_balance(Some(funds.clone())).await?;
+        let utxos = utxos(self, Some(funds.clone())).await?;
 
         // calculate payment limits and inbound liquidity
         let mut max_payable: u64 = 0;
@@ -492,6 +463,48 @@ impl NodeAPI for Greenlight {
         };
 
         Ok(client.withdraw(request).await?.into_inner())
+    }
+
+    async fn prepare_withdraw(
+        &self,
+        prepare_withdraw_request: PrepareWithdrawRequest,
+    ) -> Result<PrepareWithdrawResponse> {
+        let funds = list_funds(self).await?;
+        let amount = self.on_chain_balance(Some(funds.clone())).await?;
+        let utxos = utxos(self, Some(funds))
+            .await?
+            .into_iter()
+            .map(|it| cln::Outpoint {
+                txid: it.txid.encode(),
+                outnum: it.outnum,
+            })
+            .collect();
+        debug!("amount: {}", amount);
+        debug!("utxos: {:?}", utxos);
+
+        let request = cln::TxprepareRequest {
+            outputs: vec![cln::OutputDesc {
+                address: prepare_withdraw_request.to_address,
+                amount: Some(cln::Amount { msat: amount }),
+            }],
+            feerate: Some(cln::Feerate {
+                style: Some(cln::feerate::Style::Perkw(
+                    prepare_withdraw_request.fee_rate_sats_per_vbyte,
+                )),
+            }),
+            minconf: None,
+            utxos,
+        };
+
+        let mut node_client = self.get_node_client().await?;
+        let response = node_client.tx_prepare(request).await?.into_inner();
+        debug!("tx_prepare response: {:?}", response);
+        debug!("raw_tx_hex: {:?}", String::from_utf8(response.unsigned_tx)?);
+        return Ok(PrepareWithdrawResponse {
+            raw_tx_hex: String::new(), //String::from_utf8(response.unsigned_tx)?,
+            sat_per_vbyte: prepare_withdraw_request.fee_rate_sats_per_vbyte,
+            fee_sat: 50,
+        });
     }
 
     async fn start_signer(&self, shutdown: mpsc::Receiver<()>) {
@@ -682,6 +695,62 @@ impl NodeAPI for Greenlight {
     fn derive_bip32_key(&self, path: Vec<ChildNumber>) -> Result<ExtendedPrivKey> {
         Self::derive_bip32_key(self.sdk_config.network, &self.signer, path)
     }
+
+    async fn on_chain_balance(&self, funds: Option<ListFundsResponse>) -> Result<u64> {
+        let funds = match funds {
+            Some(f) => f,
+            None => list_funds(self).await?,
+        };
+        let on_chain_balance = funds.outputs.iter().fold(0, |a, b| {
+            if b.reserved {
+                return a;
+            }
+            a + amount_to_msat(&b.amount.clone().unwrap_or_default())
+        });
+        return Ok(on_chain_balance);
+    }
+}
+
+async fn list_funds(node: &Greenlight) -> Result<ListFundsResponse> {
+    let mut client = node.get_client().await?;
+    let funds = client
+        .list_funds(pb::ListFundsRequest::default())
+        .await?
+        .into_inner();
+    return Ok(funds);
+}
+
+// Collect utxos from onchain funds
+async fn utxos(
+    node: &Greenlight,
+    funds: Option<ListFundsResponse>,
+) -> Result<Vec<UnspentTransactionOutput>> {
+    let funds = match funds {
+        Some(f) => f,
+        None => list_funds(node).await?,
+    };
+    let utxos: Vec<UnspentTransactionOutput> = funds
+        .outputs
+        .iter()
+        .filter_map(|list_funds_output| {
+            list_funds_output
+                .output
+                .as_ref()
+                .map(|output| UnspentTransactionOutput {
+                    txid: output.txid.clone(),
+                    outnum: output.outnum,
+                    amount_millisatoshi: list_funds_output
+                        .amount
+                        .as_ref()
+                        .map(amount_to_msat)
+                        .unwrap_or_default(),
+                    address: list_funds_output.address.clone(),
+                    reserved: list_funds_output.reserved,
+                    reserved_to_block: list_funds_output.reserved_to_block,
+                })
+        })
+        .collect();
+    return Ok(utxos);
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, EnumString, Display, Deserialize, Serialize)]

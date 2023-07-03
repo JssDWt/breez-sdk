@@ -21,7 +21,7 @@ use crate::lsp::LspInformation;
 use crate::models::{Config, LogEntry, NodeState, Payment, PaymentTypeFilter, SwapInfo};
 use crate::{
     BackupStatus, BuyBitcoinProvider, EnvironmentType, LnUrlCallbackStatus, NodeConfig,
-    ReverseSwapInfo, ReverseSwapPairInfo,
+    PrepareWithdrawRequest, PrepareWithdrawResponse, ReverseSwapInfo, ReverseSwapPairInfo,
 };
 
 static BREEZ_SERVICES_INSTANCE: OnceCell<Arc<BreezServices>> = OnceCell::new();
@@ -211,6 +211,17 @@ pub fn sweep(to_address: String, fee_rate_sats_per_vbyte: u64) -> Result<()> {
     block_on(async {
         get_breez_services()?
             .sweep(to_address, fee_rate_sats_per_vbyte)
+            .await
+    })
+}
+
+/// See [BreezServices::prepare_withdraw]
+pub fn prepare_withdraw(
+    prepare_withdraw_request: PrepareWithdrawRequest,
+) -> Result<PrepareWithdrawResponse> {
+    block_on(async {
+        get_breez_services()?
+            .prepare_withdraw(prepare_withdraw_request)
             .await
     })
 }

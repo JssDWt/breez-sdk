@@ -377,6 +377,19 @@ impl BreezServices {
         Ok(())
     }
 
+    pub async fn prepare_withdraw(
+        &self,
+        prepare_withdraw_request: PrepareWithdrawRequest,
+    ) -> Result<PrepareWithdrawResponse> {
+        self.start_node().await?;
+        let response = self
+            .node_api
+            .prepare_withdraw(prepare_withdraw_request)
+            .await?;
+        self.sync().await?;
+        Ok(response)
+    }
+
     /// Fetch live rates of fiat currencies
     pub async fn fetch_fiat_rates(&self) -> Result<Vec<Rate>> {
         self.fiat_api.fetch_fiat_rates().await
@@ -903,7 +916,7 @@ impl BreezServices {
     }
 }
 
-fn closed_channel_to_transaction(channel: crate::models::Channel) -> Result<Payment> {
+fn closed_channel_to_transaction(channel: models::Channel) -> Result<Payment> {
     let now = SystemTime::now();
     Ok(Payment {
         id: channel.funding_txid.clone(),

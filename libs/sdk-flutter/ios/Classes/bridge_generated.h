@@ -49,6 +49,11 @@ typedef struct wire_Config {
   struct wire_NodeConfig node_config;
 } wire_Config;
 
+typedef struct wire_PrepareWithdrawRequest {
+  struct wire_uint_8_list *to_address;
+  uint32_t fee_rate_sats_per_vbyte;
+} wire_PrepareWithdrawRequest;
+
 typedef struct wire_LnUrlPayRequestData {
   struct wire_uint_8_list *callback;
   uint64_t min_sendable;
@@ -133,6 +138,9 @@ void wire_sweep(int64_t port_,
                 struct wire_uint_8_list *to_address,
                 uint64_t fee_rate_sats_per_vbyte);
 
+void wire_prepare_withdraw(int64_t port_,
+                           struct wire_PrepareWithdrawRequest *prepare_withdraw_request);
+
 void wire_receive_onchain(int64_t port_);
 
 void wire_in_progress_swap(int64_t port_);
@@ -205,6 +213,8 @@ struct wire_LnUrlWithdrawRequestData *new_box_autoadd_ln_url_withdraw_request_da
 
 struct wire_NodeConfig *new_box_autoadd_node_config_0(void);
 
+struct wire_PrepareWithdrawRequest *new_box_autoadd_prepare_withdraw_request_0(void);
+
 uint64_t *new_box_autoadd_u64_0(uint64_t value);
 
 struct wire_uint_8_list *new_uint_8_list_0(int32_t len);
@@ -234,6 +244,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) wire_list_fiat_currencies);
     dummy_var ^= ((int64_t) (void*) wire_close_lsp_channels);
     dummy_var ^= ((int64_t) (void*) wire_sweep);
+    dummy_var ^= ((int64_t) (void*) wire_prepare_withdraw);
     dummy_var ^= ((int64_t) (void*) wire_receive_onchain);
     dummy_var ^= ((int64_t) (void*) wire_in_progress_swap);
     dummy_var ^= ((int64_t) (void*) wire_list_refundables);
@@ -262,6 +273,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) new_box_autoadd_ln_url_pay_request_data_0);
     dummy_var ^= ((int64_t) (void*) new_box_autoadd_ln_url_withdraw_request_data_0);
     dummy_var ^= ((int64_t) (void*) new_box_autoadd_node_config_0);
+    dummy_var ^= ((int64_t) (void*) new_box_autoadd_prepare_withdraw_request_0);
     dummy_var ^= ((int64_t) (void*) new_box_autoadd_u64_0);
     dummy_var ^= ((int64_t) (void*) new_uint_8_list_0);
     dummy_var ^= ((int64_t) (void*) inflate_NodeConfig_Greenlight);

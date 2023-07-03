@@ -10,7 +10,7 @@ use bitcoin::secp256k1::{KeyPair, Message, PublicKey, Secp256k1, SecretKey};
 use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey};
 use bitcoin::Network;
 use gl_client::pb::amount::Unit;
-use gl_client::pb::{Amount, Invoice, Peer, WithdrawResponse};
+use gl_client::pb::{Amount, Invoice, ListFundsResponse, Peer, WithdrawResponse};
 use lightning::ln::PaymentSecret;
 use lightning_invoice::{Currency, InvoiceBuilder, RawInvoice};
 use rand::distributions::{Alphanumeric, DistString, Standard};
@@ -29,8 +29,8 @@ use crate::lsp::LspInformation;
 use crate::models::{FiatAPI, LspAPI, NodeAPI, NodeState, Payment, Swap, SwapperAPI, SyncResponse};
 use crate::moonpay::MoonPayApi;
 use crate::swap::create_submarine_swap_script;
-use crate::SwapInfo;
-use crate::{parse_invoice, Config, LNInvoice, PaymentResponse, RouteHint};
+use crate::{parse_invoice, Config, LNInvoice, PaymentResponse, PrepareWithdrawRequest, RouteHint};
+use crate::{PrepareWithdrawResponse, SwapInfo};
 
 pub struct MockBackupTransport {
     pub num_pushed: std::sync::Mutex<u32>,
@@ -315,6 +315,13 @@ impl NodeAPI for MockNodeAPI {
         })
     }
 
+    async fn prepare_withdraw(
+        &self,
+        prepare_withdraw_request: PrepareWithdrawRequest,
+    ) -> Result<PrepareWithdrawResponse> {
+        Err(anyhow!("Not implemented"))
+    }
+
     async fn start_signer(&self, _shutdown: mpsc::Receiver<()>) {}
 
     async fn list_peers(&self) -> Result<Vec<Peer>> {
@@ -346,6 +353,10 @@ impl NodeAPI for MockNodeAPI {
 
     fn derive_bip32_key(&self, _path: Vec<ChildNumber>) -> Result<ExtendedPrivKey> {
         Ok(ExtendedPrivKey::new_master(Network::Bitcoin, &[])?)
+    }
+
+    async fn on_chain_balance(&self, funds: Option<ListFundsResponse>) -> Result<u64> {
+        Err(anyhow!("Not implemented"))
     }
 }
 

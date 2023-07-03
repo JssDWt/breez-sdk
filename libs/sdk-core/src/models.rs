@@ -8,7 +8,7 @@ use bitcoin::hashes::Hash;
 use bitcoin::secp256k1::{PublicKey, Secp256k1, SecretKey};
 use bitcoin::util::bip32::{ChildNumber, ExtendedPrivKey};
 use bitcoin::{Address, Script};
-use gl_client::pb::{Invoice, Peer, WithdrawResponse};
+use gl_client::pb::{Invoice, ListFundsResponse, Peer, WithdrawResponse};
 use lightning_invoice::RawInvoice;
 use ripemd::{Digest, Ripemd160};
 use serde::{Deserialize, Serialize};
@@ -47,18 +47,22 @@ pub trait NodeAPI: Send + Sync {
         &self,
         bolt11: String,
         amount_sats: Option<u64>,
-    ) -> Result<crate::models::PaymentResponse>;
+    ) -> Result<PaymentResponse>;
     async fn send_spontaneous_payment(
         &self,
         node_id: String,
         amount_sats: u64,
-    ) -> Result<crate::models::PaymentResponse>;
+    ) -> Result<PaymentResponse>;
     async fn start(&self) -> Result<()>;
     async fn sweep(
         &self,
         to_address: String,
         fee_rate_sats_per_vbyte: u64,
     ) -> Result<WithdrawResponse>;
+    async fn prepare_withdraw(
+        &self,
+        prepare_withdraw_request: PrepareWithdrawRequest,
+    ) -> Result<PrepareWithdrawResponse>;
     async fn start_signer(&self, shutdown: mpsc::Receiver<()>);
     async fn list_peers(&self) -> Result<Vec<Peer>>;
     async fn connect_peer(&self, node_id: String, addr: String) -> Result<()>;
@@ -67,9 +71,9 @@ pub trait NodeAPI: Send + Sync {
     async fn stream_incoming_payments(&self) -> Result<Streaming<gl_client::pb::IncomingPayment>>;
     async fn stream_log_messages(&self) -> Result<Streaming<gl_client::pb::LogEntry>>;
     async fn execute_command(&self, command: String) -> Result<String>;
-
     /// Gets the private key at the path specified
     fn derive_bip32_key(&self, path: Vec<ChildNumber>) -> Result<ExtendedPrivKey>;
+    async fn on_chain_balance(&self, funds: Option<ListFundsResponse>) -> Result<u64>;
 }
 
 /// Trait covering LSP-related functionality
@@ -798,6 +802,25 @@ pub enum LnUrlCallbackStatus {
 #[serde(tag = "buy_bitcoin_provider")]
 pub enum BuyBitcoinProvider {
     Moonpay,
+}
+
+/// We need to prepare a withdraw transaction to know what fee will be charged in satoshis this
+/// model holds the request data which consists of the address to withdraw to and the fee rate in
+/// satoshis per vbyte which will be converted to absolute satoshis.
+#[derive(PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]
+pub struct PrepareWithdrawRequest {
+    pub to_address: String,
+    pub fee_rate_sats_per_vbyte: u32,
+}
+
+/// We need to prepare a withdraw transaction to know what a fee it will be charged in satoshis
+/// this model holds the response data, which consists of the raw transaction hex, the fee rate in
+/// vbyte and the consolidate fee in satoshis.
+#[derive(PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]
+pub struct PrepareWithdrawResponse {
+    pub raw_tx_hex: String,
+    pub sat_per_vbyte: u32,
+    pub fee_sat: u64,
 }
 
 impl FromStr for BuyBitcoinProvider {

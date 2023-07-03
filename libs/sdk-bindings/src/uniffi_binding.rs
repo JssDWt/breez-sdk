@@ -14,9 +14,10 @@ use breez_sdk_core::{
     LnUrlErrorData, LnUrlPayRequestData, LnUrlPayResult, LnUrlWithdrawRequestData, LocaleOverrides,
     LocalizedName, LogEntry, LspInformation, MessageSuccessActionData, MetadataItem, Network,
     NodeConfig, NodeState, Payment, PaymentDetails, PaymentFailedData, PaymentType,
-    PaymentTypeFilter, Rate, RecommendedFees, ReverseSwapInfo, ReverseSwapPairInfo,
-    ReverseSwapStatus, RouteHint, RouteHintHop, SuccessActionProcessed, SwapInfo, SwapStatus,
-    Symbol, UnspentTransactionOutput, UrlSuccessActionData,
+    PaymentTypeFilter, PrepareWithdrawRequest, PrepareWithdrawResponse, Rate, RecommendedFees,
+    ReverseSwapInfo, ReverseSwapPairInfo, ReverseSwapStatus, RouteHint, RouteHintHop,
+    SuccessActionProcessed, SwapInfo, SwapStatus, Symbol, UnspentTransactionOutput,
+    UrlSuccessActionData,
 };
 
 static RT: Lazy<tokio::runtime::Runtime> = Lazy::new(|| tokio::runtime::Runtime::new().unwrap());
@@ -331,6 +332,17 @@ impl BlockingBreezServices {
     pub fn buy_bitcoin(&self, provider: BuyBitcoinProvider) -> Result<String, SDKError> {
         rt().block_on(self.breez_services.buy_bitcoin(provider))
             .map_err(|e| e.into())
+    }
+
+    pub fn prepare_withdraw(
+        &self,
+        prepare_withdraw_request: PrepareWithdrawRequest,
+    ) -> Result<PrepareWithdrawResponse, SDKError> {
+        rt().block_on(
+            self.breez_services
+                .prepare_withdraw(prepare_withdraw_request),
+        )
+        .map_err(|e| e.into())
     }
 }
 

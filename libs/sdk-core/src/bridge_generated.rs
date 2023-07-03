@@ -63,6 +63,8 @@ use crate::models::Payment;
 use crate::models::PaymentDetails;
 use crate::models::PaymentType;
 use crate::models::PaymentTypeFilter;
+use crate::models::PrepareWithdrawRequest;
+use crate::models::PrepareWithdrawResponse;
 use crate::models::ReverseSwapInfo;
 use crate::models::ReverseSwapPairInfo;
 use crate::models::ReverseSwapStatus;
@@ -318,6 +320,22 @@ fn wire_sweep_impl(
             let api_to_address = to_address.wire2api();
             let api_fee_rate_sats_per_vbyte = fee_rate_sats_per_vbyte.wire2api();
             move |task_callback| sweep(api_to_address, api_fee_rate_sats_per_vbyte)
+        },
+    )
+}
+fn wire_prepare_withdraw_impl(
+    port_: MessagePort,
+    prepare_withdraw_request: impl Wire2Api<PrepareWithdrawRequest> + UnwindSafe,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap(
+        WrapInfo {
+            debug_name: "prepare_withdraw",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_prepare_withdraw_request = prepare_withdraw_request.wire2api();
+            move |task_callback| prepare_withdraw(api_prepare_withdraw_request)
         },
     )
 }
@@ -684,6 +702,7 @@ impl Wire2Api<PaymentTypeFilter> for i32 {
         }
     }
 }
+
 impl Wire2Api<u16> for u16 {
     fn wire2api(self) -> u16 {
         self
@@ -1123,6 +1142,18 @@ impl support::IntoDart for PaymentType {
     }
 }
 impl support::IntoDartExceptPrimitive for PaymentType {}
+impl support::IntoDart for PrepareWithdrawResponse {
+    fn into_dart(self) -> support::DartAbi {
+        vec![
+            self.raw_tx_hex.into_dart(),
+            self.sat_per_vbyte.into_dart(),
+            self.fee_sat.into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for PrepareWithdrawResponse {}
+
 impl support::IntoDart for Rate {
     fn into_dart(self) -> support::DartAbi {
         vec![self.coin.into_dart(), self.value.into_dart()].into_dart()
