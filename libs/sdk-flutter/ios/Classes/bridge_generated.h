@@ -111,6 +111,8 @@ void wire_list_payments(int64_t port_,
                         int64_t *from_timestamp,
                         int64_t *to_timestamp);
 
+void wire_payment_by_hash(int64_t port_, struct wire_uint_8_list *hash);
+
 void wire_list_lsps(int64_t port_);
 
 void wire_connect_lsp(int64_t port_, struct wire_uint_8_list *lsp_id);
@@ -178,6 +180,10 @@ void wire_default_config(int64_t port_, int32_t config_type);
 
 void wire_buy_bitcoin(int64_t port_, int32_t provider);
 
+void wire_backup(int64_t port_);
+
+void wire_backup_status(int64_t port_);
+
 struct wire_Config *new_box_autoadd_config_0(void);
 
 struct wire_GreenlightCredentials *new_box_autoadd_greenlight_credentials_0(void);
@@ -211,6 +217,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) wire_receive_payment);
     dummy_var ^= ((int64_t) (void*) wire_node_info);
     dummy_var ^= ((int64_t) (void*) wire_list_payments);
+    dummy_var ^= ((int64_t) (void*) wire_payment_by_hash);
     dummy_var ^= ((int64_t) (void*) wire_list_lsps);
     dummy_var ^= ((int64_t) (void*) wire_connect_lsp);
     dummy_var ^= ((int64_t) (void*) wire_fetch_lsp_info);
@@ -237,6 +244,8 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) wire_recommended_fees);
     dummy_var ^= ((int64_t) (void*) wire_default_config);
     dummy_var ^= ((int64_t) (void*) wire_buy_bitcoin);
+    dummy_var ^= ((int64_t) (void*) wire_backup);
+    dummy_var ^= ((int64_t) (void*) wire_backup_status);
     dummy_var ^= ((int64_t) (void*) new_box_autoadd_config_0);
     dummy_var ^= ((int64_t) (void*) new_box_autoadd_greenlight_credentials_0);
     dummy_var ^= ((int64_t) (void*) new_box_autoadd_i64_0);

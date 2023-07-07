@@ -40,6 +40,7 @@ jobs:
       - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '6.0.x'
+
       - uses: actions/setup-go@v4
         with:
           go-version: '1.19.9'
@@ -56,6 +57,8 @@ jobs:
         run: |                    
           curl -o jna-5.12.1.jar https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.12.1/jna-5.12.1.jar
           export CLASSPATH=$(pwd)/jna-5.12.1.jar;          
+
+      - uses: actions/setup-python@v4      
       
       - name: Install Protoc
         uses: arduino/setup-protoc@v2   

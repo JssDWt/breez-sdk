@@ -10,6 +10,7 @@ init:
 	#rustup target add armv7-apple-ios armv7s-apple-ios i386-apple-ios ## deprecated
 	rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
 	rustup target add x86_64-pc-windows-gnu
+	rustup target add aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 	@if [ $$(uname) == "Darwin" ] ; then cargo install cargo-lipo ; fi
 	cargo install cbindgen
 	cargo install cargo-ndk
@@ -75,6 +76,16 @@ golang-windows: windows
 	uniffi-bindgen-go src/breez_sdk.udl -o ffi/golang -c ./uniffi.toml
 	cp ../target/x86_64-pc-windows-gnu/release/breez_sdk_bindings.dll tests/bindings/golang/vendor/github.com/breez/breez-sdk-go/breez_sdk/lib/windows-amd64
 	cp -r ffi/golang/breez/breez_sdk/breez_sdk.go tests/bindings/golang/vendor/github.com/breez/breez-sdk-go/breez_sdk
+
+TARGET ?= aarch64-unknown-linux-gnu
+python-linux: $(SOURCES)	
+	cargo build --release --target $(TARGET)
+	cargo run --features=uniffi/cli --bin uniffi-bindgen generate src/breez_sdk.udl --language python -o ffi/python
+	cp ../target/$(TARGET)/release/libbreez_sdk_bindings.so ffi/python
+
+python-darwin: darwin-universal	
+	cargo run --features=uniffi/cli --bin uniffi-bindgen generate src/breez_sdk.udl --language python -o ffi/python
+	cp ../target/darwin-universal/release/libbreez_sdk_bindings.dylib ffi/python
 
 swift-ios: ios-universal
 	cargo run --features=uniffi/cli --bin uniffi-bindgen generate src/breez_sdk.udl -l swift -o ffi/swift-ios

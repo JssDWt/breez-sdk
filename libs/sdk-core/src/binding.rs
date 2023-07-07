@@ -18,7 +18,9 @@ use crate::models::{
     Config, EnvironmentType, GreenlightCredentials, Network, NodeState, Payment, PaymentTypeFilter,
     SwapInfo,
 };
-use crate::{BuyBitcoinProvider, LnUrlCallbackStatus, ReverseSwapInfo, ReverseSwapPairInfo};
+use crate::{
+    BackupStatus, BuyBitcoinProvider, LnUrlCallbackStatus, ReverseSwapInfo, ReverseSwapPairInfo,
+};
 use anyhow::{anyhow, Result};
 use flutter_rust_bridge::StreamSink;
 use log::{Level, LevelFilter, Metadata, Record};
@@ -140,13 +142,11 @@ pub fn init_services(config: Config, seed: Vec<u8>, creds: GreenlightCredentials
 /// See [BreezServices::start]
 pub fn start_node() -> Result<()> {
     block_on(async {
-        BreezServices::start(
-            rt(),
-            BREEZ_SERVICES_INSTANCE
-                .get()
-                .ok_or_else(|| anyhow!("breez services instance was not initialized"))?,
-        )
-        .await
+        BREEZ_SERVICES_INSTANCE
+            .get()
+            .ok_or_else(|| anyhow!("breez services instance was not initialized"))?
+            .start()
+            .await
     })
 }
 
@@ -221,6 +221,11 @@ pub fn list_payments(
     })
 }
 
+/// See [BreezServices::list_payments]
+pub fn payment_by_hash(hash: String) -> Result<Option<Payment>> {
+    block_on(async { get_breez_services()?.payment_by_hash(hash).await })
+}
+
 /// See [BreezServices::list_lsps]
 pub fn list_lsps() -> Result<Vec<LspInformation>> {
     block_on(async { get_breez_services()?.list_lsps().await })
@@ -253,7 +258,10 @@ pub fn list_fiat_currencies() -> Result<Vec<FiatCurrency>> {
 
 /// See [BreezServices::close_lsp_channels]
 pub fn close_lsp_channels() -> Result<()> {
-    block_on(async { get_breez_services()?.close_lsp_channels().await })
+    block_on(async {
+        _ = get_breez_services()?.close_lsp_channels().await;
+        Ok(())
+    })
 }
 
 /// See [BreezServices::sweep]
@@ -402,4 +410,14 @@ pub fn default_config(config_type: EnvironmentType) -> Config {
 /// See [BreezServices::buy_bitcoin]
 pub fn buy_bitcoin(provider: BuyBitcoinProvider) -> Result<String> {
     block_on(async { get_breez_services()?.buy_bitcoin(provider).await })
+}
+
+/// See [BreezServices::backup]
+pub fn backup() -> Result<()> {
+    block_on(async { get_breez_services()?.backup().await })
+}
+
+/// See [BreezServices::backup_status]
+pub fn backup_status() -> Result<BackupStatus> {
+    get_breez_services()?.backup_status()
 }

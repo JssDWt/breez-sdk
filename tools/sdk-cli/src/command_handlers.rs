@@ -9,7 +9,7 @@ use breez_sdk_core::{
     parse, BreezEvent, BreezServices, EventListener, GreenlightCredentials, InputType::LnUrlPay,
     PaymentTypeFilter,
 };
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::OnceCell;
 use qrcode_rs::render::unicode;
 use qrcode_rs::{EcLevel, QrCode};
 use rustyline::Editor;
@@ -18,7 +18,6 @@ use crate::persist::CliPersistence;
 use crate::Commands;
 
 static BREEZ_SERVICES: OnceCell<Arc<BreezServices>> = OnceCell::new();
-static RT: Lazy<tokio::runtime::Runtime> = Lazy::new(|| tokio::runtime::Runtime::new().unwrap());
 
 fn sdk() -> Result<Arc<BreezServices>> {
     BREEZ_SERVICES
@@ -26,10 +25,6 @@ fn sdk() -> Result<Arc<BreezServices>> {
         .ok_or("Breez Services not initialized")
         .map_err(|err| anyhow!(err))
         .cloned()
-}
-
-fn rt() -> &'static tokio::runtime::Runtime {
-    &RT
 }
 
 struct CliEventListener {}
@@ -50,10 +45,10 @@ async fn init_sdk(config: Config, seed: &[u8], creds: &GreenlightCredentials) ->
     .await?;
 
     BREEZ_SERVICES
-        .set(service)
+        .set(service.clone())
         .map_err(|_| anyhow!("Failed to set Breez Service"))?;
 
-    BreezServices::start(rt(), &sdk()?).await
+    service.start().await
 }
 
 pub(crate) async fn handle_command(
@@ -195,6 +190,10 @@ pub(crate) async fn handle_command(
                 .await?;
             serde_json::to_string_pretty(&payments).map_err(|e| e.into())
         }
+        Commands::PaymentByHash { hash } => {
+            let payment = sdk()?.payment_by_hash(hash).await?;
+            serde_json::to_string_pretty(&payment).map_err(|e| e.into())
+        }
         Commands::Sweep {
             to_address,
             sat_per_byte,
@@ -221,8 +220,8 @@ pub(crate) async fn handle_command(
             serde_json::to_string_pretty(&sdk()?.fetch_fiat_rates().await?).map_err(|e| e.into())
         }
         Commands::CloseLSPChannels {} => {
-            sdk()?.close_lsp_channels().await?;
-            Ok("LSP channels were closed succesfully".to_string())
+            let tx_ids = sdk()?.close_lsp_channels().await?;
+            Ok(format!("Closing transaction ids:\n{:?}", tx_ids))
         }
         Commands::StopNode {} => {
             sdk()?.stop().await?;
@@ -327,8 +326,8 @@ pub(crate) async fn handle_command(
             Ok(format!("Here your {:?} url: {}", provider, res))
         }
         Commands::Backup {} => {
-            sdk()?.start_backup()?;
-            Ok("Backup started".into())
+            sdk().unwrap().backup().await?;
+            Ok("Backup completed succesfully".into())
         }
     }
 }
