@@ -44,7 +44,7 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: '1.19.9'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure jna windows
         if: ${{ matrix.os == 'windows-latest' }}        
@@ -64,25 +64,14 @@ jobs:
         uses: arduino/setup-protoc@v2   
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}   
-      
-      - name: Install Perl
-        uses: shogo82148/actions-setup-perl@v1
-        if: ${{ matrix.os == 'windows-latest' }}
-        with:
-          perl-version: '5.32'
-          distribution: 'strawberry'
 
-      - name: Perl version
-        run: |
-          perl -V
-
-      - name: Setup MS VC++ command prompt
-        uses: ilammy/msvc-dev-cmd@v1
+      - name: Setup vcpkg
         if: ${{ matrix.os == 'windows-latest' }}
+        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Install OpenSSL for Windows
         if: ${{ matrix.os == 'windows-latest' }}
-        run: vcpkg integrate install; vcpkg install openssl:x64-windows
+        run: vcpkg install openssl:x64-windows-static-md
        
       - name: Install dependencies
         run: |
@@ -91,15 +80,6 @@ jobs:
 
       - name: Run lib tests windows-latest
         if: ${{ matrix.os == 'windows-latest' }}
-        env:
-          RUSTFLAGS: '-Ctarget-feature=+crt-static'
-          OPENSSL_STATIC: 1
-          OPENSSL_NO_VENDOR: 1
-          OPENSSL_DIR: 'C:/vcpkg/packages/openssl_x86-windows'
-          # This paths are required to work with static linking
-          OPENSSL_LIB_DIR: 'C:/vcpkg/packages/openssl_x86-windows/lib'
-          OPENSSL_INCLUDE_DIR: 'C:/vcpkg/packages/openssl_x86-windows/include'
-          LIBCLANG_PATH: 'C:\Program Files\LLVM\bin'
         run: |         
           cd libs/sdk-bindings
           make csharp-windows golang-windows
