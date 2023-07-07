@@ -94,10 +94,10 @@ jobs:
         env:
           OPENSSL_STATIC: 1
           OPENSSL_NO_VENDOR: 1
-          OPENSSL_DIR: 'C:\vcpkg\packages\openssl_x86-windows'
+          OPENSSL_DIR: 'C:/vcpkg/packages/openssl_x86-windows'
           # This paths are required to work with static linking
-          OPENSSL_LIB_DIR: 'C:\vcpkg\packages\openssl_x86-windows\lib'
-          OPENSSL_INCLUDE_DIR: 'C:\vcpkg\packages\openssl_x86-windows\include'
+          OPENSSL_LIB_DIR: 'C:/vcpkg/packages/openssl_x86-windows/lib'
+          OPENSSL_INCLUDE_DIR: 'C:/vcpkg/packages/openssl_x86-windows/include'
         run: |         
           cd libs/sdk-bindings
           make csharp-windows golang-windows
