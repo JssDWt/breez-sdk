@@ -65,13 +65,13 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}   
 
-      - name: Setup vcpkg
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-
       - name: Install OpenSSL for Windows
         if: ${{ matrix.os == 'windows-latest' }}
-        run: vcpkg install openssl:x64-windows-static-md
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat
+          .\vcpkg\vcpkg install openssl:x64-windows-static-md
+          pwd
        
       - name: Install dependencies
         run: |
@@ -80,6 +80,15 @@ jobs:
 
       - name: Run lib tests windows-latest
         if: ${{ matrix.os == 'windows-latest' }}
+        env:
+          RUSTFLAGS: '-Ctarget-feature=+crt-static'
+          OPENSSL_STATIC: 1
+          OPENSSL_NO_VENDOR: 1
+          OPENSSL_DIR: 'D:\a\actions\actions\vcpkg\packages\openssl_x86-windows-static-md'
+          # This paths are required to work with static linking
+          OPENSSL_LIB_DIR: 'D:\a\actions\actions\vcpkg\packages\openssl_x86-windows-static-md\lib'
+          OPENSSL_INCLUDE_DIR: 'D:\a\actions\actions\vcpkg\packages\openssl_x86-windows-static-md\include'
+          LIBCLANG_PATH: 'C:\Program Files\LLVM\bin'
         run: |         
           cd libs/sdk-bindings
           make csharp-windows golang-windows
