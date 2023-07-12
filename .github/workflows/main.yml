@@ -84,13 +84,13 @@ jobs:
       - name: Run lib tests windows-latest
         if: ${{ matrix.os == 'windows-latest' }}
         env:
-          RUSTFLAGS: '-Ctarget-feature=+crt-static'
-          OPENSSL_STATIC: 1
+          #RUSTFLAGS: '-Ctarget-feature=+crt-static'
+          #OPENSSL_STATIC: 1
           OPENSSL_NO_VENDOR: 1
-          OPENSSL_DIR: 'C:\vcpkg\installed\x64-windows-static'
+          OPENSSL_DIR: 'C:\vcpkg\installed\x64-windows'
           # This paths are required to work with static linking
-          OPENSSL_LIB_DIR: 'C:\vcpkg\installed\x64-windows-static\lib'
-          OPENSSL_INCLUDE_DIR: 'C:\vcpkg\installed\x64-windows-static\include'
+          OPENSSL_LIB_DIR: 'C:\vcpkg\installed\x64-windows\lib'
+          OPENSSL_INCLUDE_DIR: 'C:\vcpkg\installed\x64-windows\include'
           LIBCLANG_PATH: 'C:\Program Files\LLVM\bin'
         run: |         
           cd libs/sdk-bindings
