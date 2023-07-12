@@ -67,11 +67,11 @@ jobs:
 
       - name: Install OpenSSL for Windows
         if: ${{ matrix.os == 'windows-latest' }}
+        env:
+          VCPKG_ROOT: 'C:\vcpkg'
         run: |
-          git clone https://github.com/microsoft/vcpkg.git
-          .\vcpkg\bootstrap-vcpkg.bat
-          .\vcpkg\vcpkg install openssl:x64-windows-static-md
-          pwd
+          vcpkg integrate install
+          vcpkg install openssl:x64-windows
        
       - name: Install dependencies
         run: |
@@ -81,14 +81,8 @@ jobs:
       - name: Run lib tests windows-latest
         if: ${{ matrix.os == 'windows-latest' }}
         env:
-          RUSTFLAGS: '-Ctarget-feature=+crt-static'
-          OPENSSL_STATIC: 1
-          OPENSSL_NO_VENDOR: 1
-          OPENSSL_DIR: 'D:\a\breez-sdk\breez-sdk\vcpkg\packages\openssl_x86-windows-static-md'
-          # This paths are required to work with static linking
-          OPENSSL_LIB_DIR: 'D:\a\breez-sdk\breez-sdk\vcpkg\packages\openssl_x86-windows-static-md\lib'
-          OPENSSL_INCLUDE_DIR: 'D:\a\breez-sdk\breez-sdk\vcpkg\packages\openssl_x86-windows-static-md\include'
-          LIBCLANG_PATH: 'C:\Program Files\LLVM\bin'
+          VCPKGRS_DYNAMIC: '1'
+          VCPKG_ROOT: 'C:\vcpkg'
         run: |         
           cd libs/sdk-bindings
           make csharp-windows golang-windows
@@ -105,7 +99,18 @@ jobs:
           make csharp-darwin golang-darwin
           cd ..          
           cargo test
-      - name: Run tools tests        
+
+      - name: Run tools tests windows-latest    
+        if: ${{ matrix.os == 'windows-latest' }}
+        env:
+          VCPKGRS_DYNAMIC: '1'
+          VCPKG_ROOT: 'C:\vcpkg'
+        run: |
+          cd tools/sdk-cli
+          cargo test
+
+      - name: Run tools tests macos-latest      
+        if: ${{ matrix.os == 'macos-latest' }}
         run: |
           cd tools/sdk-cli
           cargo test
