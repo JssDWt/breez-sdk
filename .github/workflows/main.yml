@@ -72,6 +72,8 @@ jobs:
         run: |
           vcpkg integrate install
           vcpkg install openssl:x64-windows
+          cd C:\vcpkg
+          Get-ChildItem -Recurse
        
       - name: Install dependencies
         run: |
