@@ -70,9 +70,10 @@ jobs:
         env:
           VCPKG_ROOT: 'C:\vcpkg'
         run: |
+          vcpkg install openssl-windows:x64-windows
+          vcpkg install openssl:x64-windows-static
           vcpkg integrate install
-          vcpkg install openssl:x64-windows
-          cd C:\vcpkg
+          cd C:\vcpkg\installed
           Get-ChildItem -Recurse
        
       - name: Install dependencies
