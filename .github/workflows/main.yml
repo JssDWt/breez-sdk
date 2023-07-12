@@ -87,10 +87,10 @@ jobs:
           RUSTFLAGS: '-Ctarget-feature=+crt-static'
           OPENSSL_STATIC: 1
           OPENSSL_NO_VENDOR: 1
-          OPENSSL_DIR: 'C:\vcpkg\installed\x86-windows'
+          OPENSSL_DIR: 'C:\vcpkg\installed\x64-windows-static'
           # This paths are required to work with static linking
-          OPENSSL_LIB_DIR: 'C:\vcpkg\installed\x86-windows\lib'
-          OPENSSL_INCLUDE_DIR: C:\vcpkg\installed\x86-windows\include'
+          OPENSSL_LIB_DIR: 'C:\vcpkg\installed\x64-windows-static\lib'
+          OPENSSL_INCLUDE_DIR: 'C:\vcpkg\installed\x64-windows-static\include'
           LIBCLANG_PATH: 'C:\Program Files\LLVM\bin'
         run: |         
           cd libs/sdk-bindings
