@@ -92,6 +92,7 @@ jobs:
           # This paths are required to work with static linking
           OPENSSL_LIB_DIR: 'C:\vcpkg\installed\x64-windows-static\lib'
           OPENSSL_INCLUDE_DIR: 'C:\vcpkg\installed\x64-windows-static\include'
+          OPENSSL_LIBS: 'libcrypto:libssl'
           LIBCLANG_PATH: 'C:\Program Files\LLVM\bin'
         run: |         
           cd libs/sdk-bindings
