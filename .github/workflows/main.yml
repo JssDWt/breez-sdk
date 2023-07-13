@@ -102,8 +102,8 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: msys2 {0}
         run: |
-          cd C:\msys64\mingw64\bin
-          Get-ChildItem -Recurse
+          cd C:/msys64/mingw64/bin
+          ls
           ./perl -V
           ./perl -V:make
        
@@ -130,7 +130,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: msys2 {0}
         env:
-          OPENSSL_SRC_PERL: C:\msys64\mingw64\bin\perl
+          OPENSSL_SRC_PERL: C:/msys64/mingw64/bin/perl.exe
         run: |         
           cd libs/sdk-bindings
           make csharp-windows golang-windows
