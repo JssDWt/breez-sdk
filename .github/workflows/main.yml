@@ -100,12 +100,9 @@ jobs:
 
       - name: Check perl windows-latest
         if: ${{ matrix.os == 'windows-latest' }}
-        shell: msys2 {0}
         run: |
-          cd C:/msys64/mingw64/bin
-          ls
-          ./perl -V
-          ./perl -V:make
+          cd C:\msys64\mingw64\bin
+          Get-ChildItem -Recurse
        
       - name: Install dependencies
         run: |
