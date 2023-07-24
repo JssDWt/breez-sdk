@@ -43,7 +43,7 @@ jobs:
       - name: Trigger Jitpack Release
         run: |
           sleep 30
-          curl -X DELETE -u${{ secrets.JITPACK_TOKEN }}: https://jitpack.io/api//builds/com.github.breez/breez-sdk/${{ inputs.version }} || true
+          curl -X DELETE -u${{ secrets.JITPACK_TOKEN }}: https://jitpack.io/api/builds/com.github.breez/breez-sdk/${{ inputs.version }} || true
           sleep 30
-          curl -s -m 30 https://jitpack.io/com/breez/breez-sdk/${{ inputs.version }} || true
+          curl https://jitpack.io/api/builds/com.github.breez/breez-sdk/{{ inputs.version }} || true
         shell: bash
