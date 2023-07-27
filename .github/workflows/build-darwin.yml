@@ -1,6 +1,6 @@
 name: Build Darwin
 on:
-  workflow-call:
+  workflow_call:
 
 jobs:
   build:

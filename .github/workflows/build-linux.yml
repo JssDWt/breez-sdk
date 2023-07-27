@@ -1,6 +1,6 @@
 name: Build Linux
 on:
-  workflow-call:
+  workflow_call:
 
 jobs:
   build:

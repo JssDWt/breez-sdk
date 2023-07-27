@@ -1,6 +1,6 @@
 name: Build Windows
 on:
-  workflow-call:
+  workflow_call:
 
 jobs:
   build:
