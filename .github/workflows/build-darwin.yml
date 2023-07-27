@@ -39,10 +39,9 @@ jobs:
       run: cargo lipo --release --targets ${{ matrix.target }}
     
     - name: Archive release
-      working-directory: libs/target/${{ matrix.target }}/release
       uses: actions/upload-artifact@v3
       with:
         name: sdk-bindings-${{ github.sha }}-${{ matrix.target }}
         path: |
-          libbreez_sdk_bindings.dylib
-          libbreez_sdk_bindings.a
+          libs/target/${{ matrix.target }}/release/libbreez_sdk_bindings.dylib
+          libs/target/${{ matrix.target }}/release/libbreez_sdk_bindings.a
