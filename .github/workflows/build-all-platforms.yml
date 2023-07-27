@@ -1,0 +1,14 @@
+name: Build all platforms
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "build-artifacts-in-ci"
+
+jobs:
+  build-windows:
+    uses: ./.github/workflows/build-windows.yml
+  build-darwin:
+    uses: ./.github/workflows/build-darwin.yml
+  build-linux:
+    uses: ./.github/workflows/build-linux.yml

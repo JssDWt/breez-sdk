@@ -1,8 +1,6 @@
 name: Build Darwin
 on:
-  push:
-    branches:
-      - "build-artifacts-in-ci"
+  workflow-call:
 
 jobs:
   build:
@@ -15,29 +13,41 @@ jobs:
           x86_64-apple-darwin,
         ]
     steps:
+    - name: check artifact exists
+      uses: xSAVIKx/artifact-exists-action@v0
+      id: check_artifact_exists
+      with:
+        name: sdk-bindings-${{ github.sha }}-${{ matrix.target }}
+
     - name: checkout
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       uses: actions/checkout@v3
 
     - name: Install rust toolchain
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       run: |
         rustup set auto-self-update disable
         rustup toolchain install stable --profile minimal
         rustup target add ${{ matrix.target }}
 
     - name: Install protobuf compiler
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       env:
           HOMEBREW_NO_AUTO_UPDATE: 1
       run: brew install protobuf
 
     - uses: Swatinem/rust-cache@v2
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       with:
         workspaces: libs
 
     - name: Build Breez 
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       working-directory: libs/sdk-bindings
       run: cargo build --release --target ${{ matrix.target }}
     
     - name: Archive release
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       uses: actions/upload-artifact@v3
       with:
         name: sdk-bindings-${{ github.sha }}-${{ matrix.target }}
@@ -50,23 +60,33 @@ jobs:
     needs: build
     name: build darwin-universal
     steps:
-    - uses: actions/download-artifact@v3
+    - name: check artifact exists
+      uses: xSAVIKx/artifact-exists-action@v0
+      id: check_artifact_exists
+      with:
+        name: sdk-bindings-${{ github.sha }}-darwin-universal
+
+    - uses: actions/download-artifact@
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       with:
         name: sdk-bindings-${{ github.sha }}-aarch64-apple-darwin
         path: aarch64-apple-darwin
 
     - uses: actions/download-artifact@v3
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       with:
         name: sdk-bindings-${{ github.sha }}-x86_64-apple-darwin
         path: x86_64-apple-darwin
 
     - name: Build Darwin universal
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       run: |
         mkdir -p darwin-universal
         lipo -create -output darwin-universal/libbreez_sdk_bindings.dylib aarch64-apple-darwin/libbreez_sdk_bindings.dylib x86_64-apple-darwin/libbreez_sdk_bindings.dylib
         lipo -create -output darwin-universal/libbreez_sdk_bindings.a aarch64-apple-darwin/libbreez_sdk_bindings.a x86_64-apple-darwin/libbreez_sdk_bindings.a
 
     - name: Archive release
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       uses: actions/upload-artifact@v3
       with:
         name: sdk-bindings-${{ github.sha }}-darwin-universal

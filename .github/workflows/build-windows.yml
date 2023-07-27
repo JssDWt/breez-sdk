@@ -1,8 +1,6 @@
 name: Build Windows
-# on:
-#   push:
-#     branches:
-#       - "build-artifacts-in-ci"
+on:
+  workflow-call:
 
 jobs:
   build:
@@ -15,16 +13,25 @@ jobs:
           x86_64-pc-windows-msvc,
         ]
     steps:
+    - name: check artifact exists
+      uses: xSAVIKx/artifact-exists-action@v0
+      id: check_artifact_exists
+      with:
+        name: sdk-bindings-${{ github.sha }}-${{ matrix.target }}
+
     - name: checkout
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       uses: actions/checkout@v3
 
     - name: Install rust toolchain
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       run: |
         rustup set auto-self-update disable
         rustup toolchain install stable --profile minimal
         rustup target add ${{ matrix.target }}
 
     - name: Install protobuf compiler
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       run: |
         $ProgressPreference = "SilentlyContinue"
         Invoke-WebRequest https://github.com/protocolbuffers/protobuf/releases/download/v23.4/protoc-23.4-win64.zip -OutFile protoc-23.4-win64.zip
@@ -34,14 +41,17 @@ jobs:
       shell: powershell
 
     - uses: Swatinem/rust-cache@v2
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       with:
         workspaces: libs
 
     - name: Build Breez 
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       working-directory: libs/sdk-bindings
       run: cargo build --release --target ${{ matrix.target }}
     
     - name: Archive release
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       uses: actions/upload-artifact@v3
       with:
         name: sdk-bindings-${{ github.sha }}-${{ matrix.target }}

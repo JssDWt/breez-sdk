@@ -1,8 +1,6 @@
 name: Build Linux
 on:
-  push:
-    branches:
-      - "build-artifacts-in-ci"
+  workflow-call:
 
 jobs:
   build:
@@ -15,31 +13,46 @@ jobs:
           x86_64-unknown-linux-gnu,
         ]
     steps:
+    - name: check artifact exists
+      uses: xSAVIKx/artifact-exists-action@v0
+      id: check_artifact_exists
+      with:
+        name: sdk-bindings-${{ github.sha }}-${{ matrix.target }}
+
     - name: checkout
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       uses: actions/checkout@v3
 
     - name: Install rust toolchain
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       run: |
         rustup set auto-self-update disable
         rustup toolchain install stable --profile minimal
         rustup target add ${{ matrix.target }}
 
     - name: Install protobuf compiler
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       run: sudo apt-get install -y protobuf-compiler
 
     - name: Install gcc-aarch64-linux-gnu
+      if: |
+        steps.check_artifact_exists.outputs.exists == 'false' &&
+        matrix.target == 'aarch64-unknown-linux-gnu'
       run: sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu 
-      if: matrix.target == 'aarch64-unknown-linux-gnu'
 
     - name: Install gcc-x86-64-linux-gnu
+      if: |
+        steps.check_artifact_exists.outputs.exists == 'false' &&
+        matrix.target == 'x86_64-unknown-linux-gnu'
       run: sudo apt-get install -y gcc-x86-64-linux-gnu g++-x86-64-linux-gnu 
-      if: matrix.target == 'x86_64-unknown-linux-gnu'
 
     - uses: Swatinem/rust-cache@v2
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       with:
         workspaces: libs
 
     - name: Build Breez 
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       working-directory: libs/sdk-bindings
       env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: /usr/bin/aarch64-linux-gnu-gcc
@@ -47,6 +60,7 @@ jobs:
       run: cargo build --release --target ${{ matrix.target }}
     
     - name: Archive release
+      if: steps.check_artifact_exists.outputs.exists == 'false'
       uses: actions/upload-artifact@v3
       with:
         name: sdk-bindings-${{ github.sha }}-${{ matrix.target }}
