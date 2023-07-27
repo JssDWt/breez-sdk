@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         target: [
-          i686-pc-windows-msvc,
+          # i686-pc-windows-msvc,
           x86_64-pc-windows-msvc,
         ]
     steps:
@@ -51,7 +51,8 @@ jobs:
         cargo install cbindgen
         cargo install --version 0.22.0 uniffi_bindgen
 
-    - name: Build Breez SDK
+    - name: Build Breez 
+      working-directory: build/libs/sdk-bindings
       run: cargo build --release --target ${{ matrix.target }}
     
     - name: Archive release
