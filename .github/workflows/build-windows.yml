@@ -1,0 +1,74 @@
+name: Build Windows
+on:
+  push:
+    branches:
+      - "build-artifacts-in-ci"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'breez-sdk repo tag, branch or commit id'
+        required: true
+        type: string
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    name: (${{ inputs.ref }}-${{ matrix.target }})
+    strategy:
+      matrix:
+        target: [
+          # i686-pc-windows-gnu,
+          i686-pc-windows-msvc,
+          # x86_64-pc-windows-gnu,
+          x86_64-pc-windows-msvc,
+        ]
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ inputs.ref }}
+        path: build
+
+      # Run build
+    - name: Install Rustup using win.rustup.rs
+      run: |
+        # Disable the download progress bar which can cause perf issues
+        $ProgressPreference = "SilentlyContinue"
+        Invoke-WebRequest https://win.rustup.rs/ -OutFile rustup-init.exe
+        .\rustup-init.exe -y --default-host=x86_64-pc-windows-msvc --default-toolchain=none
+        del rustup-init.exe
+        rustup target add ${{ matrix.target }}
+      shell: powershell
+
+    # - name: Add mingw32 to path for i686-gnu
+    #   run: |
+    #     echo "C:\msys64\mingw32\bin" >> $GITHUB_PATH
+    #   if: matrix.target == 'i686-pc-windows-gnu'
+    #   shell: bash
+
+    # - name: Add mingw64 to path for x86_64-gnu
+    #   run: echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
+    #   if: matrix.target == 'x86_64-pc-windows-gnu'
+    #   shell: bash
+
+    - name: Install protobuf compiler
+      run: |
+        $ProgressPreference = "SilentlyContinue"
+        Invoke-WebRequest https://github.com/protocolbuffers/protobuf/releases/download/v23.4/protoc-23.4-win64.zip -OutFile protoc-23.4-win64.zip
+        Expand-Archive -Path protoc-23.4-win64.zip -DestinationPath .\protobuf
+        dir /h
+        Add-Content $env:GITHUB_PATH "$((Get-Item .\protobuf).FullName)"
+
+    - name: Install uniffi
+      run: |
+        cargo install cbindgen
+        cargo install --version 0.22.0 uniffi_bindgen
+
+    - name: Build Breez SDK
+      run: cargo build --release --target ${{ matrix.target }}
+    
+    - name: Archive release
+      uses: actions/upload-artifact@v3
+      with:
+        name: sdk-bindings-${{ inputs.ref }}-${{ matrix.target }}
+        path: build/libs/target/${{ matrix.target }}/release/breez_sdk_bindings.dll
