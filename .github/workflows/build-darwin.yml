@@ -1,0 +1,48 @@
+name: Build Darwin
+on:
+  push:
+    branches:
+      - "build-artifacts-in-ci"
+
+jobs:
+  build:
+    runs-on: macOS-latest
+    name: ${{ github.sha }}-${{ matrix.target }}
+    strategy:
+      matrix:
+        target: [
+          aarch64-apple-darwin,
+          x86_64-apple-darwin,
+        ]
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+
+    - name: Install rust toolchain
+      run: |
+        rustup set auto-self-update disable
+        rustup toolchain install stable --profile minimal
+        rustup target add ${{ matrix.target }}
+        cargo install cargo-lipo
+
+    - name: Install protobuf compiler
+      env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+      run: brew install protobuf
+
+    - uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: libs
+
+    - name: Build Breez 
+      working-directory: libs/sdk-bindings
+      run: cargo lipo --release --targets ${{ matrix.target }}
+    
+    - name: Archive release
+      working-directory: libs/target/${{ matrix.target }}/release
+      uses: actions/upload-artifact@v3
+      with:
+        name: sdk-bindings-${{ github.sha }}-${{ matrix.target }}
+        path: |
+          libbreez_sdk_bindings.dylib
+          libbreez_sdk_bindings.a
