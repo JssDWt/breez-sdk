@@ -43,8 +43,8 @@ jobs:
         $ProgressPreference = "SilentlyContinue"
         Invoke-WebRequest https://github.com/protocolbuffers/protobuf/releases/download/v23.4/protoc-23.4-win64.zip -OutFile protoc-23.4-win64.zip
         Expand-Archive -Path protoc-23.4-win64.zip -DestinationPath .\protobuf
-        dir .\protobuf
-        Add-Content $env:GITHUB_PATH "$((Get-Item .\protobuf).FullName)"
+        dir .\protobuf\bin
+        Add-Content $env:GITHUB_PATH "$((Get-Item .\protobuf\bin).FullName)"
 
     - name: Install uniffi
       run: |
