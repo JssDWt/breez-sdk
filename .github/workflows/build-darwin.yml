@@ -35,7 +35,7 @@ jobs:
 
     - name: Build Breez 
       working-directory: libs/sdk-bindings
-      run: cargo build --release --targets ${{ matrix.target }}
+      run: cargo build --release --target ${{ matrix.target }}
     
     - name: Archive release
       uses: actions/upload-artifact@v3
