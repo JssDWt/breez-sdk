@@ -3,13 +3,13 @@ on:
   push:
     branches:
       - "build-artifacts-in-ci"
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: 'breez-sdk repo tag, branch or commit id'
-        required: true
-        type: string
-        default: ${{ github.sha }}
+  # workflow_dispatch:
+  #   inputs:
+  #     ref:
+  #       description: 'breez-sdk repo tag, branch or commit id'
+  #       required: true
+  #       type: string
+  #       default: ${{ github.sha }}
 
 jobs:
   build-windows:
@@ -24,8 +24,6 @@ jobs:
     steps:
     - name: checkout
       uses: actions/checkout@v3
-      with:
-        ref: ${{ inputs.ref }}
 
     - name: Install rust toolchain
       run: |
