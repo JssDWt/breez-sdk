@@ -23,7 +23,6 @@ jobs:
         rustup set auto-self-update disable
         rustup toolchain install stable --profile minimal
         rustup target add ${{ matrix.target }}
-        cargo install cargo-lipo
 
     - name: Install protobuf compiler
       env:
@@ -36,7 +35,7 @@ jobs:
 
     - name: Build Breez 
       working-directory: libs/sdk-bindings
-      run: cargo lipo --release --targets ${{ matrix.target }}
+      run: cargo build --release --targets ${{ matrix.target }}
     
     - name: Archive release
       uses: actions/upload-artifact@v3
