@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     runs-on: macOS-latest
-    name: ${{ github.sha }}-${{ matrix.target }}
+    name: build ${{ matrix.target }}
     strategy:
       matrix:
         target: [
@@ -45,3 +45,32 @@ jobs:
         path: |
           libs/target/${{ matrix.target }}/release/libbreez_sdk_bindings.dylib
           libs/target/${{ matrix.target }}/release/libbreez_sdk_bindings.a
+  
+  merge:
+    runs-on: macOS-latest
+    needs: build
+    name: build darwin-universal
+    steps:
+    - uses: actions/download-artifact@v3
+      with:
+        name: sdk-bindings-${{ github.sha }}-aarch64-apple-darwin
+        path: aarch64-apple-darwin
+
+    - uses: actions/download-artifact@v3
+      with:
+        name: sdk-bindings-${{ github.sha }}-x86_64-apple-darwin
+        path: x86_64-apple-darwin
+
+    - name: Build Darwin universal
+      run: |
+        mkdir -p darwin-universal
+        lipo -create -output darwin-universal/libbreez_sdk_bindings.dylib aarch64-apple-darwin/libbreez_sdk_bindings.dylib x86_64-apple-darwin/libbreez_sdk_bindings.dylib
+        lipo -create -output darwin-universal/libbreez_sdk_bindings.a aarch64-apple-darwin/libbreez_sdk_bindings.a x86_64-apple-darwin/libbreez_sdk_bindings.a
+
+    - name: Archive release
+      uses: actions/upload-artifact@v3
+      with:
+        name: sdk-bindings-${{ github.sha }}-darwin-universal
+        path: |
+          darwin-universal/libbreez_sdk_bindings.dylib
+          darwin-universal/libbreez_sdk_bindings.a
